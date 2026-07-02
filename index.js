@@ -1,11 +1,8 @@
-require('dotenv').config();
 const express = require('express');
 const crypto = require('crypto');
+const bodyParser = require('body-parser');
 const nodemailer = require('nodemailer');
 const axios = require('axios');
-
-const VERIFICATION_TOKEN = "MiDwEsT_dIeSeL_Kyle_kRaEmEr_ThisIsWild";
-const ENDPOINT = "https://mwd-order-confirmation-production.up.railway.app/webhook/ebay";   // Must match exactly what you send in createDestination
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -13,6 +10,39 @@ const PORT = process.env.PORT || 3000;
 app.use(express.raw({ type: 'application/json' }));
 
 const EMAIL_TO = 'kpkraemer@gmail.com';
+
+// Replace with your own secret
+const VERIFICATION_TOKEN = "MiDwEsT_dIeSeL_Kyle_kRaEmEr_ThisIsWild";
+const ENDPOINT = "https://mwd-order-confirmation-production.up.railway.app/webhook/ebay";   // Must match exactly what you send in createDestination
+
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+
+// ======================
+// EBAY WEBHOOK ENDPOINT
+// ======================
+app.get('/webhook/ebay', (req, res) => {          // ← Challenge (GET request)
+    const challengeCode = req.query.challenge_code;
+
+    if (!challengeCode) {
+        return res.status(400).send('Missing challenge_code');
+    }
+
+    try {
+        const hash = crypto.createHash('sha256');
+        hash.update(challengeCode);
+        hash.update(VERIFICATION_TOKEN);
+        hash.update(ENDPOINT);
+
+        const challengeResponse = hash.digest('hex');
+
+        res.setHeader('Content-Type', 'application/json');
+        return res.status(200).json({ challengeResponse });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).send('Error processing challenge');
+    }
+});
 
 // Nodemailer
 const transporter = nodemailer.createTransport({
@@ -23,6 +53,7 @@ const transporter = nodemailer.createTransport({
   }
 });
 
+// VERIFICATION?????????????????
 async function getEbayPublicKey(keyId) {
   try {
     const res = await axios.get(`https://api.ebay.com/commerce/notification/v1/public_key/${keyId}`);
@@ -48,7 +79,16 @@ async function verifySignature(signatureHeader, body) {
   }
 }
 
-app.post('/webhook', async (req, res) => {
+
+app.post('/webhook/ebay', (req, res) => {         // ← Actual notifications (POST)
+    console.log('=== eBay Notification Received ===');
+    console.log('Headers:', req.headers);
+    console.log('Body:', JSON.stringify(req.body, null, 2));
+
+    // TODO: Add signature verification here (highly recommended)
+    // Use eBay's official Node.js SDK for easier validation
+
+    // BEGIN MAIL FUNCTION
   const body = req.body.toString();
   const signatureHeader = req.headers['x-ebay-signature'];
 
@@ -95,11 +135,13 @@ app.post('/webhook', async (req, res) => {
     } catch (err) {
       console.error('Email failed:', err);
     }
-  }
 
-  res.status(200).send('OK');
+	//END MAIL FUNCTION
+
+    // Always return 200 OK quickly
+    res.status(200).send('OK');
 });
 
 app.listen(PORT, () => {
-  console.log(`🚀 Webhook running on port ${PORT}`);
+    console.log(`eBay webhook listening on port ${PORT}`);
 });
