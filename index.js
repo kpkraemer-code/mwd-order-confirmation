@@ -2,6 +2,9 @@ const express = require('express');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+const VERIFICATION_TOKEN = "MiDwEsT_dIeSeL_Kyle_kRaEmEr_ThisIsWild";
+const ENDPOINT = "https://midwesttest-production.up.railway.app/webhook";   // Must match exactly what you send in createDestination
+
 app.post('/webhook', (req, res) => {
   const challenge = req.headers['x-ebay-challenge-code'];
   
