@@ -4,6 +4,9 @@ const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 const axios = require('axios');
 
+const VERIFICATION_TOKEN = "MiDwEsT_dIeSeL_Kyle_kRaEmEr_ThisIsWild";
+const ENDPOINT = "https://mwd-order-confirmation-production.up.railway.app";   // Must match exactly what you send in createDestination
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
